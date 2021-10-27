@@ -248,9 +248,67 @@ data_b_3_post <- data_b_2_post %>%
 
 # then the income data
 load("data/data_income.R")
-load("data/airline_data_market_level.R")
+
+income_Omerge_pre <- msa_income %>% 
+  dplyr::rename(O_income=median_income,
+                origin_city=city)
+data_c_1_pre <- left_join(data_b_3_pre, income_Omerge_pre, by="origin_city")
+income_Dmerge_pre <- msa_income %>% 
+  dplyr::rename(D_income=median_income,
+                dest_city=city)
+data_c_2_pre <- left_join(data_c_1_pre, income_Dmerge_pre, by="dest_city")
+data_c_3_pre <- data_c_2_pre %>% 
+  mutate(mean_income=sqrt(O_income*D_income)) %>% 
+  dplyr::select(c(-11,-12))
+
+income_Omerge_post <- msa_income %>% 
+  dplyr::rename(O_income=median_income,
+                origin_city=city)
+data_c_1_post <- left_join(data_b_3_post, income_Omerge_post, by="origin_city")
+income_Dmerge_post <- msa_income %>% 
+  dplyr::rename(D_income=median_income,
+                dest_city=city)
+data_c_2_post <- left_join(data_c_1_post, income_Dmerge_post, by="dest_city")
+data_c_3_post <- data_c_2_post %>% 
+  mutate(mean_income=sqrt(O_income*D_income)) %>% 
+  dplyr::select(c(-11,-12))
 
 # then the slot controlled data
+load("data/slot_controlled.R")
+
+slot_Omerge_pre <- slot_controlled %>% 
+  dplyr::rename(O_slot_flag=slot_controlled,
+                origin_airport_id=airport)
+data_d_1_pre <- left_join(data_c_3_pre, slot_Omerge_pre, by="origin_airport_id")
+slot_Dmerge_pre <- slot_controlled %>% 
+  dplyr::rename(D_slot_flag=slot_controlled,
+                dest_airport_id=airport)
+data_d_2_pre <- left_join(data_d_1_pre, slot_Dmerge_pre, by="dest_airport_id")
+data_d_3_pre <- data_d_2_pre %>% 
+  mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
+  dplyr::select(c(-12,-13))
+
+slot_Omerge_post <- slot_controlled %>% 
+  dplyr::rename(O_slot_flag=slot_controlled,
+                origin_airport_id=airport)
+data_d_1_post <- left_join(data_c_3_post, slot_Omerge_post, by="origin_airport_id")
+slot_Dmerge_post <- slot_controlled %>% 
+  dplyr::rename(D_slot_flag=slot_controlled,
+                dest_airport_id=airport)
+data_d_2_post <- left_join(data_d_1_post, slot_Dmerge_post, by="dest_airport_id")
+data_d_3_post <- data_d_2_post %>% 
+  mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
+  dplyr::select(c(-12,-13))
+
+# sort the data
+airport_data_pre <- data_d_3_pre %>% 
+  arrange(origin_airport_id, dest_airport_id)
+airport_data_post <- data_d_3_post %>% 
+  arrange(origin_airport_id, dest_airport_id)
+
+##### OUR DATA SETS FOR ANALYSIS ARE airport_data_pre AND airport_data_post #####
+
+
 # after all of that, we should have our data that we want
 
 
