@@ -2,9 +2,6 @@
 ##########################  725 Project ###########################
 ###################################################################
 
-###### Hey Everybody, I need to re-download the data again because
-# we need the city names to merge some of the data on. I will do that tonight
-
 
 rm(list = ls())
 suppressMessages(library(tidyverse))
@@ -194,7 +191,7 @@ lookup_and_hub_Dmerge_pre <- lookup_and_hub2 %>%
 data_a_2_pre <- left_join(data_a_1_pre, lookup_and_hub_Dmerge_pre, by="dest_airport_id")
 data_a_3_pre <- data_a_2_pre %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-7,-8,-9,-10,-11,-12))
+  dplyr::select(c(-8,-9,-11,-12))
 
 lookup_and_hub_Omerge_post <- lookup_and_hub2 %>% 
   dplyr::rename(O_hub_flag=hub_flag,
@@ -206,15 +203,48 @@ lookup_and_hub_Dmerge_post <- lookup_and_hub2 %>%
 data_a_2_post <- left_join(data_a_1_post, lookup_and_hub_Dmerge_post, by="dest_airport_id")
 data_a_3_post <- data_a_2_post %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-7,-8,-9,-10,-11,-12))
+  dplyr::select(c(-8,-9,-11,-12))
+
+data_a_4_pre <- data_a_3_pre %>% 
+  dplyr::rename(o_city=Description.x,
+         d_city=Description.y) 
+data_a_4_post <- data_a_3_post %>% 
+  dplyr::rename(o_city=Description.x,
+                d_city=Description.y) 
+  
+data_a_5_pre <- data_a_4_pre %>% 
+  separate(o_city, c("origin_city",NA), sep = ":") %>% 
+  separate(d_city, c("dest_city",NA), sep=":")
+data_a_5_post <- data_a_4_post %>% 
+  separate(o_city, c("origin_city",NA), sep = ":") %>% 
+  separate(d_city, c("dest_city",NA), sep=":")
 
 # then the vacation spot data
-# load("data/vacations.R")
-# 
-# vacations_Omerge_pre <- vacations %>% 
-#   dplyr::rename(O_vac_flag=vacation_spot,
-#                 origin_city=origin_cities)
-# data_b_1_pre <- left_join(data_a_3_pre, vacations_Omerge_pre, by="origin_city")
+load("data/vacations.R")
+
+vacations_Omerge_pre <- vacations %>%
+  dplyr::rename(O_vac_flag=vacation_spot,
+                origin_city=origin_cities)
+data_b_1_pre <- left_join(data_a_5_pre, vacations_Omerge_pre, by="origin_city")
+vacations_Dmerge_pre <- vacations %>% 
+  dplyr::rename(D_vac_flag=vacation_spot,
+                dest_city=origin_cities)
+data_b_2_pre <- left_join(data_b_1_pre, vacations_Dmerge_pre, by="dest_city")
+data_b_3_pre <- data_b_2_pre %>% 
+  mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
+  dplyr::select(c(-10,-11))
+
+vacations_Omerge_post <- vacations %>%
+  dplyr::rename(O_vac_flag=vacation_spot,
+                origin_city=origin_cities)
+data_b_1_post <- left_join(data_a_5_post, vacations_Omerge_post, by="origin_city")
+vacations_Dmerge_post <- vacations %>% 
+  dplyr::rename(D_vac_flag=vacation_spot,
+                dest_city=origin_cities)
+data_b_2_post <- left_join(data_b_1_post, vacations_Dmerge_post, by="dest_city")
+data_b_3_post <- data_b_2_post %>% 
+  mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
+  dplyr::select(c(-10,-11))
 
 # then the income data
 load("data/data_income.R")
