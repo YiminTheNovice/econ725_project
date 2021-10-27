@@ -2,6 +2,9 @@
 ##########################  725 Project ###########################
 ###################################################################
 
+###### Hey Everybody, I need to re-download the data again because
+# we need the city names to merge some of the data on. I will do that tonight
+
 
 rm(list = ls())
 suppressMessages(library(tidyverse))
@@ -13,6 +16,7 @@ suppressMessages(library(ggplot2))
 suppressMessages(library(stargazer))
 suppressMessages(library(glmnet))
 suppressMessages(library(data.table))
+suppressMessages(library(matrixStats))
 setwd("/Users/fuglc/725 Work/Project")
 
 
@@ -164,9 +168,58 @@ Market_data_post <- data_post5 %>%
 
 
 # Next we will bring in the populations data
+load("data/populations.R")
+populations_merge <- populations %>% 
+  mutate(Market_Ind = paste(origin_airport_id,dest_airport_id,sep=""))
+
+Market_data_pre1 <- left_join(Market_data_pre, populations_merge, by="Market_Ind") #%>% 
+  #select(-c(origin_airport_id,dest_airport_id))
+Market_data_post1 <- left_join(Market_data_post, populations_merge, by="Market_Ind")#%>% 
+  #select(-c(origin_airport_id,dest_airport_id))
+
 # then the hub data
+load("data/lookup_and_hub_r.R")
+
+lookup_and_hub$hub_flag = rowMaxs(as.matrix(lookup_and_hub[,c(-1,-2,-3)]))
+lookup_and_hub2 <- lookup_and_hub %>% 
+  dplyr::select(c(1,2,3,135))
+
+lookup_and_hub_Omerge_pre <- lookup_and_hub2 %>% 
+  dplyr::rename(O_hub_flag=hub_flag,
+                origin_airport_id=Code)
+data_a_1_pre <- left_join(Market_data_pre1, lookup_and_hub_Omerge_pre, by="origin_airport_id")
+lookup_and_hub_Dmerge_pre <- lookup_and_hub2 %>% 
+  dplyr::rename(D_hub_flag=hub_flag,
+                dest_airport_id=Code)
+data_a_2_pre <- left_join(data_a_1_pre, lookup_and_hub_Dmerge_pre, by="dest_airport_id")
+data_a_3_pre <- data_a_2_pre %>% 
+  mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
+  dplyr::select(c(-7,-8,-9,-10,-11,-12))
+
+lookup_and_hub_Omerge_post <- lookup_and_hub2 %>% 
+  dplyr::rename(O_hub_flag=hub_flag,
+                origin_airport_id=Code)
+data_a_1_post <- left_join(Market_data_post1, lookup_and_hub_Omerge_post, by="origin_airport_id")
+lookup_and_hub_Dmerge_post <- lookup_and_hub2 %>% 
+  dplyr::rename(D_hub_flag=hub_flag,
+                dest_airport_id=Code)
+data_a_2_post <- left_join(data_a_1_post, lookup_and_hub_Dmerge_post, by="dest_airport_id")
+data_a_3_post <- data_a_2_post %>% 
+  mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
+  dplyr::select(c(-7,-8,-9,-10,-11,-12))
+
 # then the vacation spot data
+# load("data/vacations.R")
+# 
+# vacations_Omerge_pre <- vacations %>% 
+#   dplyr::rename(O_vac_flag=vacation_spot,
+#                 origin_city=origin_cities)
+# data_b_1_pre <- left_join(data_a_3_pre, vacations_Omerge_pre, by="origin_city")
+
 # then the income data
+load("data/data_income.R")
+load("data/airline_data_market_level.R")
+
 # then the slot controlled data
 # after all of that, we should have our data that we want
 
