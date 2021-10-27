@@ -95,6 +95,85 @@ Market_airline_post <- data_post5 %>%
                    Tot_Pass_by_market_airline=sum(PASSENGERS),
                    ave_distance=mean(MARKET_DISTANCE, na.rm=T))
 
+# get data on a market level by grouping just by market indicator
+Market_data_pre <- data_pre5 %>%
+  dplyr::group_by(Market_Ind) %>%
+  dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
+            ave_distance=mean(MARKET_DISTANCE, na.rm=T))
+Market_data_post <- data_post5 %>%
+  dplyr::group_by(Market_Ind) %>%
+  dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
+                   ave_distance=mean(MARKET_DISTANCE, na.rm=T))
+
+############## We shouldn't need HHI or number of firms, seeing as we are only
+# looking at 2 firms that ultimately become 1 firm.
+
+# In order to get total number of firms, I notice that we can use the market
+# airline level data. Since this is on a per market per firm basis, we can add
+# a 1 to each of these observations and then sum them up by market to get the
+# total number of firms per market. Then I left join that information to the 
+# data set above.
+# Market_airline_pre2 <- Market_airline_pre %>% 
+#   mutate(firm_no=1) %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(tot_firms=sum(firm_no))
+# Market_data_pre2 <- left_join(Market_data_pre, Market_airline_pre2, by="Market_Ind")
+# 
+# Market_airline_post2 <- Market_airline_post %>% 
+#   mutate(firm_no=1) %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(tot_firms=sum(firm_no))
+# Market_data_post2 <- left_join(Market_data_post, Market_airline_post2, by="Market_Ind")
+
+
+# Calculating HHI is even more complicated. For this, I first sum up the total
+# passengers from the market airline data by market. 
+# HHI_merge_pre<-Market_airline_pre %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(Market_Pass_tot=sum(Tot_Pass_by_market_airline))
+# HHI_merge_post<-Market_airline_post %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(Market_Pass_tot=sum(Tot_Pass_by_market_airline))
+
+# Then I merge that back onto the market airline level data set
+# HHI_merge_pre2<-left_join(Market_airline_pre,HHI_merge_pre,by="Market_Ind")
+# HHI_merge_post2<-left_join(Market_airline_post,HHI_merge_post,by="Market_Ind")
+
+# Then I divide the Total passengers by market airline by the total number of
+# passengers by market and square that to get market share squared
+# HHI_merge_pre3<-HHI_merge_pre2 %>% 
+#   mutate(Market_share=(Tot_Pass_by_market_airline/Market_Pass_tot)*100,
+#          Market_share_2=Market_share^2)
+# HHI_merge_post3<-HHI_merge_post2 %>% 
+#   mutate(Market_share=(Tot_Pass_by_market_airline/Market_Pass_tot)*100,
+#          Market_share_2=Market_share^2)
+
+# I then sum up the market share squared variable by market to get the HHI
+# HHI_merge_pre4<-HHI_merge_pre3 %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(HHI=sum(Market_share_2))
+# HHI_merge_post4<-HHI_merge_post3 %>% 
+#   dplyr::group_by(Market_Ind) %>% 
+#   dplyr::summarize(HHI=sum(Market_share_2))
+
+# Lastly, I merge this onto our market level data which already contains
+# average price, average distance, and number of firms
+# Market_data_pre3<-left_join(Market_data_pre2, HHI_merge_pre4, by="Market_Ind")
+# Market_data_post3<-left_join(Market_data_post2, HHI_merge_post4, by="Market_Ind")
+
+
+
+# Next we will bring in the populations data
+# then the hub data
+# then the vacation spot data
+# then the income data
+# then the slot controlled data
+# after all of that, we should have our data that we want
+
+
+
+
+
 # c. Split into a test set (pre period), validation set (pre period), and a test
 # set (post period)
 
