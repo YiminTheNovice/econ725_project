@@ -2,6 +2,13 @@
 ##########################  725 Project ###########################
 ###################################################################
 
+###################################################################
+################### Set memory limit ##############################
+###################################################################
+memory.limit(size=15000) # try making this slightly bigger if you run into issues
+###################################################################
+###################################################################
+###################################################################
 
 rm(list = ls())
 suppressMessages(library(tidyverse))
@@ -26,6 +33,14 @@ setwd("/Users/fuglc/725 Work/Project")
 # end of q4 2014, so take  data from 2013 as pre period and 2014 as post.
 
 #read in all data subsetted for American and US Airways
+data_2012_q1 <- read_csv("data/2012_q1.csv") %>% 
+  subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
+data_2012_q2 <- read_csv("data/2012_q2.csv") %>% 
+  subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
+data_2012_q3 <- read_csv("data/2012_q3.csv") %>% 
+  subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
+data_2012_q4 <- read_csv("data/2012_q4.csv") %>% 
+  subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
 data_2013_q1 <- read_csv("data/2013_q1.csv") %>% 
   subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
 data_2013_q2 <- read_csv("data/2013_q2.csv") %>% 
@@ -44,6 +59,10 @@ data_2014_q4 <- read_csv("data/2014_q4.csv") %>%
   subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
 
 data_pre <- rbind.fill(data_2013_q1,
+                       data_2013_q2,
+                       data_2013_q3,
+                       data_2013_q4,
+                       data_2013_q1,
                        data_2013_q2,
                        data_2013_q3,
                        data_2013_q4)
@@ -161,7 +180,6 @@ Market_data_post <- data_post5 %>%
 # average price, average distance, and number of firms
 # Market_data_pre3<-left_join(Market_data_pre2, HHI_merge_pre4, by="Market_Ind")
 # Market_data_post3<-left_join(Market_data_post2, HHI_merge_post4, by="Market_Ind")
-
 
 
 # Next we will bring in the populations data
@@ -300,16 +318,36 @@ data_d_3_post <- data_d_2_post %>%
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
   dplyr::select(c(-12,-13))
 
-# sort the data
+# sort the data and add indicator for pre/post period
 airport_data_pre <- data_d_3_pre %>% 
-  arrange(origin_airport_id, dest_airport_id)
+  arrange(origin_airport_id, dest_airport_id) %>% 
+  mutate(period=0)
 airport_data_post <- data_d_3_post %>% 
-  arrange(origin_airport_id, dest_airport_id)
+  arrange(origin_airport_id, dest_airport_id) %>% 
+  mutate(period=1)
+
+# stack the data!
+airport_data_full <- rbind.fill(airport_data_pre,
+                                airport_data_post)
 
 ##### OUR DATA SETS FOR ANALYSIS ARE airport_data_pre AND airport_data_post #####
 
 
 # after all of that, we should have our data that we want
+
+# I am confused as to how to go about the train/test split
+# We want to train the model such that it predicts post merger prices,
+# which means we need some post observations in our train data, correct?
+# How do we separate them in the split? 
+# if we use the pre data as our train and post as our test, and using 
+# our thoughts on what a merger should do, we would expect prices to be higher
+# post merger than they are pre merger. This would bias us in our model estimate
+# Should we instead be using all post merger data to train our model?
+# is there a "stratify" option in R so that we get the same relative proportion
+# of pre and post data in our train and test split if we stack the two together?
+# I think we should stack the data and use an indicator variable that is 0 for
+# the pre period and 1 for the post. Then stratify the split and train that way
+# this will give us some beta estimate for post merger prices.
 
 
 
