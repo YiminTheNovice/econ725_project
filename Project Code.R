@@ -348,6 +348,11 @@ airport_data_full <- rbind.fill(airport_data_pre,
 # I think we should stack the data and use an indicator variable that is 0 for
 # the pre period and 1 for the post. Then stratify the split and train that way
 # this will give us some beta estimate for post merger prices.
+# so I need the data on a market quarter level and then split by stratifying on
+# markets perhaps. Or try stratifying on the pre/post flag.
+# 1. download more post data
+# 2. stack both together
+# 3. split by stratifying on market or period variable
 
 
 
