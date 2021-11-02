@@ -21,6 +21,8 @@ suppressMessages(library(stargazer))
 suppressMessages(library(glmnet))
 suppressMessages(library(data.table))
 suppressMessages(library(matrixStats))
+suppressMessages(library(caret))
+suppressMessages(library(splitstackshape))
 setwd("/Users/fuglc/725 Work/Project")
 
 
@@ -107,8 +109,8 @@ data_post5 <- inner_join(data_post3,data_post4,by="Market_Ind")
 Market_airline_pre <- data_pre5 %>% 
   dplyr::group_by(Market_Ind, TICKET_CARRIER) %>% 
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
-            Tot_Pass_by_market_airline=sum(PASSENGERS),
-            ave_distance=mean(MARKET_DISTANCE, na.rm=T))
+                   Tot_Pass_by_market_airline=sum(PASSENGERS),
+                   ave_distance=mean(MARKET_DISTANCE, na.rm=T))
 Market_airline_post <- data_post5 %>% 
   dplyr::group_by(Market_Ind, TICKET_CARRIER) %>% 
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
@@ -117,11 +119,11 @@ Market_airline_post <- data_post5 %>%
 
 # get data on a market level by grouping just by market indicator
 Market_data_pre <- data_pre5 %>%
-  dplyr::group_by(Market_Ind) %>%
+  dplyr::group_by(Market_Ind, YEAR, QUARTER) %>%
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
-            ave_distance=mean(MARKET_DISTANCE, na.rm=T))
+                   ave_distance=mean(MARKET_DISTANCE, na.rm=T))
 Market_data_post <- data_post5 %>%
-  dplyr::group_by(Market_Ind) %>%
+  dplyr::group_by(Market_Ind, YEAR, QUARTER) %>%
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
                    ave_distance=mean(MARKET_DISTANCE, na.rm=T))
 
@@ -188,9 +190,10 @@ populations_merge <- populations %>%
   mutate(Market_Ind = paste(origin_airport_id,dest_airport_id,sep=""))
 
 Market_data_pre1 <- left_join(Market_data_pre, populations_merge, by="Market_Ind") #%>% 
-  #select(-c(origin_airport_id,dest_airport_id))
+#select(-c(origin_airport_id,dest_airport_id))
 Market_data_post1 <- left_join(Market_data_post, populations_merge, by="Market_Ind")#%>% 
-  #select(-c(origin_airport_id,dest_airport_id))
+#select(-c(origin_airport_id,dest_airport_id))
+
 
 # then the hub data
 load("data/lookup_and_hub_r.R")
@@ -209,7 +212,7 @@ lookup_and_hub_Dmerge_pre <- lookup_and_hub2 %>%
 data_a_2_pre <- left_join(data_a_1_pre, lookup_and_hub_Dmerge_pre, by="dest_airport_id")
 data_a_3_pre <- data_a_2_pre %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-8,-9,-11,-12))
+  dplyr::select(c(-10,-11,-13,-14))
 
 lookup_and_hub_Omerge_post <- lookup_and_hub2 %>% 
   dplyr::rename(O_hub_flag=hub_flag,
@@ -221,15 +224,15 @@ lookup_and_hub_Dmerge_post <- lookup_and_hub2 %>%
 data_a_2_post <- left_join(data_a_1_post, lookup_and_hub_Dmerge_post, by="dest_airport_id")
 data_a_3_post <- data_a_2_post %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-8,-9,-11,-12))
+  dplyr::select(c(-10,-11,-13,-14))
 
 data_a_4_pre <- data_a_3_pre %>% 
   dplyr::rename(o_city=Description.x,
-         d_city=Description.y) 
+                d_city=Description.y) 
 data_a_4_post <- data_a_3_post %>% 
   dplyr::rename(o_city=Description.x,
                 d_city=Description.y) 
-  
+
 data_a_5_pre <- data_a_4_pre %>% 
   separate(o_city, c("origin_city",NA), sep = ":") %>% 
   separate(d_city, c("dest_city",NA), sep=":")
@@ -250,7 +253,7 @@ vacations_Dmerge_pre <- vacations %>%
 data_b_2_pre <- left_join(data_b_1_pre, vacations_Dmerge_pre, by="dest_city")
 data_b_3_pre <- data_b_2_pre %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-10,-11))
+  dplyr::select(c(-11,-12))
 
 vacations_Omerge_post <- vacations %>%
   dplyr::rename(O_vac_flag=vacation_spot,
@@ -262,7 +265,7 @@ vacations_Dmerge_post <- vacations %>%
 data_b_2_post <- left_join(data_b_1_post, vacations_Dmerge_post, by="dest_city")
 data_b_3_post <- data_b_2_post %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-10,-11))
+  dplyr::select(c(-11,-12))
 
 # then the income data
 load("data/data_income.R")
@@ -277,7 +280,7 @@ income_Dmerge_pre <- msa_income %>%
 data_c_2_pre <- left_join(data_c_1_pre, income_Dmerge_pre, by="dest_city")
 data_c_3_pre <- data_c_2_pre %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-11,-12))
+  dplyr::select(c(-12,-13))
 
 income_Omerge_post <- msa_income %>% 
   dplyr::rename(O_income=median_income,
@@ -289,7 +292,7 @@ income_Dmerge_post <- msa_income %>%
 data_c_2_post <- left_join(data_c_1_post, income_Dmerge_post, by="dest_city")
 data_c_3_post <- data_c_2_post %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-11,-12))
+  dplyr::select(c(-12,-13))
 
 # then the slot controlled data
 load("data/slot_controlled.R")
@@ -304,7 +307,7 @@ slot_Dmerge_pre <- slot_controlled %>%
 data_d_2_pre <- left_join(data_d_1_pre, slot_Dmerge_pre, by="dest_airport_id")
 data_d_3_pre <- data_d_2_pre %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 slot_Omerge_post <- slot_controlled %>% 
   dplyr::rename(O_slot_flag=slot_controlled,
@@ -316,7 +319,7 @@ slot_Dmerge_post <- slot_controlled %>%
 data_d_2_post <- left_join(data_d_1_post, slot_Dmerge_post, by="dest_airport_id")
 data_d_3_post <- data_d_2_post %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 # sort the data and add indicator for pre/post period
 airport_data_pre <- data_d_3_pre %>% 
@@ -326,40 +329,45 @@ airport_data_post <- data_d_3_post %>%
   arrange(origin_airport_id, dest_airport_id) %>% 
   mutate(period=1)
 
-# stack the data!
+# stack the data (and remove NAs)!
 airport_data_full <- rbind.fill(airport_data_pre,
-                                airport_data_post)
+                                airport_data_post) %>% 
+  na.omit()
 
-##### OUR DATA SETS FOR ANALYSIS ARE airport_data_pre AND airport_data_post #####
-
-
-# after all of that, we should have our data that we want
-
-# I am confused as to how to go about the train/test split
-# We want to train the model such that it predicts post merger prices,
-# which means we need some post observations in our train data, correct?
-# How do we separate them in the split? 
-# if we use the pre data as our train and post as our test, and using 
-# our thoughts on what a merger should do, we would expect prices to be higher
-# post merger than they are pre merger. This would bias us in our model estimate
-# Should we instead be using all post merger data to train our model?
-# is there a "stratify" option in R so that we get the same relative proportion
-# of pre and post data in our train and test split if we stack the two together?
-# I think we should stack the data and use an indicator variable that is 0 for
-# the pre period and 1 for the post. Then stratify the split and train that way
-# this will give us some beta estimate for post merger prices.
-# so I need the data on a market quarter level and then split by stratifying on
-# markets perhaps. Or try stratifying on the pre/post flag.
-# 1. download more post data
-# 2. stack both together
-# 3. split by stratifying on market or period variable
+# OUR FINAL DATA SET FOR ANALYSIS IS airport_data_full 
 
 
-
+# In order to ensure that we get the same proportion of pre and post observations
+# in our train and test split, we will use the stratify method, which
+# does just that. We will stratify on the market, year, and quarter to 
+# ensure the train and test split has equal proportion of all that
+# We can then train our models on the train data.
 
 
 # c. Split into a test set (pre period), validation set (pre period), and a test
 # set (post period)
+# set the seed for reproduction
+set.seed(11022021)
+
+# get the train data from the stratified() function in the splitstackshape
+# package. I use a 85/15 split here.
+train_data <- stratified(airport_data_full,
+                         c('Market_Ind', 'YEAR'),
+                         0.85)
+
+# keep just the market, year, and quarter to merge back to the full data
+train_data_merge <- train_data %>% 
+  select('Market_Ind', 'YEAR', 'QUARTER')
+
+# anti join the observations from our train data to the full data in 
+# order to get the other observations as our test data.
+test_data <- anti_join(airport_data_full,
+                       train_data_merge,
+                       by=c('Market_Ind', 'YEAR', 'QUARTER'))
+
+
+
+#### WE CAN NOW TRAIN MODELS ####
 
 # d. Try an xgboost (or random forest) model to predict prices. Train the model on
 # the train set and test its performance on the validation set before using the
