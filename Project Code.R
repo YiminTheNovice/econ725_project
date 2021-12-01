@@ -474,3 +474,21 @@ MSE_rf_ds = (10^(MSE_rf)-1)*100
 # 
 # MSE_nn_1 <- mean((test_r_1 - pr_nn_1)^2) # get MSE
 
+
+
+
+
+
+
+
+
+
+##################################################
+########### NEXT STEPS ###########################
+##################################################
+
+# 1. if somebody wants to take a crack at a neural network, go for it.
+# 2. Download data for the counter factual merger
+# 3. Run that through the cleaning portion of the code.
+# 4. Generate predictions with our best performing model (currently rf)
+# 5. Write everything up
