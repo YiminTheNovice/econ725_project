@@ -23,6 +23,9 @@ suppressMessages(library(data.table))
 suppressMessages(library(matrixStats))
 suppressMessages(library(caret))
 suppressMessages(library(splitstackshape))
+suppressMessages(library(xgboost))
+suppressMessages(library(randomForest))
+suppressMessages(library(parsnip))
 setwd("/Users/fuglc/725 Work/Project")
 
 
@@ -121,68 +124,13 @@ Market_airline_post <- data_post5 %>%
 Market_data_pre <- data_pre5 %>%
   dplyr::group_by(Market_Ind, YEAR, QUARTER) %>%
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
-                   ave_distance=mean(MARKET_DISTANCE, na.rm=T))
+                   ave_distance=mean(MARKET_DISTANCE, na.rm=T),
+                   ave_passengers=mean(Tot_Passengers, na.rm=T))
 Market_data_post <- data_post5 %>%
   dplyr::group_by(Market_Ind, YEAR, QUARTER) %>%
   dplyr::summarize(ave_price=mean(MARKET_FARE, na.rm=T),
-                   ave_distance=mean(MARKET_DISTANCE, na.rm=T))
-
-############## We shouldn't need HHI or number of firms, seeing as we are only
-# looking at 2 firms that ultimately become 1 firm.
-
-# In order to get total number of firms, I notice that we can use the market
-# airline level data. Since this is on a per market per firm basis, we can add
-# a 1 to each of these observations and then sum them up by market to get the
-# total number of firms per market. Then I left join that information to the 
-# data set above.
-# Market_airline_pre2 <- Market_airline_pre %>% 
-#   mutate(firm_no=1) %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(tot_firms=sum(firm_no))
-# Market_data_pre2 <- left_join(Market_data_pre, Market_airline_pre2, by="Market_Ind")
-# 
-# Market_airline_post2 <- Market_airline_post %>% 
-#   mutate(firm_no=1) %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(tot_firms=sum(firm_no))
-# Market_data_post2 <- left_join(Market_data_post, Market_airline_post2, by="Market_Ind")
-
-
-# Calculating HHI is even more complicated. For this, I first sum up the total
-# passengers from the market airline data by market. 
-# HHI_merge_pre<-Market_airline_pre %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(Market_Pass_tot=sum(Tot_Pass_by_market_airline))
-# HHI_merge_post<-Market_airline_post %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(Market_Pass_tot=sum(Tot_Pass_by_market_airline))
-
-# Then I merge that back onto the market airline level data set
-# HHI_merge_pre2<-left_join(Market_airline_pre,HHI_merge_pre,by="Market_Ind")
-# HHI_merge_post2<-left_join(Market_airline_post,HHI_merge_post,by="Market_Ind")
-
-# Then I divide the Total passengers by market airline by the total number of
-# passengers by market and square that to get market share squared
-# HHI_merge_pre3<-HHI_merge_pre2 %>% 
-#   mutate(Market_share=(Tot_Pass_by_market_airline/Market_Pass_tot)*100,
-#          Market_share_2=Market_share^2)
-# HHI_merge_post3<-HHI_merge_post2 %>% 
-#   mutate(Market_share=(Tot_Pass_by_market_airline/Market_Pass_tot)*100,
-#          Market_share_2=Market_share^2)
-
-# I then sum up the market share squared variable by market to get the HHI
-# HHI_merge_pre4<-HHI_merge_pre3 %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(HHI=sum(Market_share_2))
-# HHI_merge_post4<-HHI_merge_post3 %>% 
-#   dplyr::group_by(Market_Ind) %>% 
-#   dplyr::summarize(HHI=sum(Market_share_2))
-
-# Lastly, I merge this onto our market level data which already contains
-# average price, average distance, and number of firms
-# Market_data_pre3<-left_join(Market_data_pre2, HHI_merge_pre4, by="Market_Ind")
-# Market_data_post3<-left_join(Market_data_post2, HHI_merge_post4, by="Market_Ind")
-
+                   ave_distance=mean(MARKET_DISTANCE, na.rm=T),
+                   ave_passengers=mean(Tot_Passengers, na.rm=T))
 
 # Next we will bring in the populations data
 load("data/populations.R")
@@ -253,7 +201,7 @@ vacations_Dmerge_pre <- vacations %>%
 data_b_2_pre <- left_join(data_b_1_pre, vacations_Dmerge_pre, by="dest_city")
 data_b_3_pre <- data_b_2_pre %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-11,-12))
+  dplyr::select(c(-12,-13))
 
 vacations_Omerge_post <- vacations %>%
   dplyr::rename(O_vac_flag=vacation_spot,
@@ -265,7 +213,7 @@ vacations_Dmerge_post <- vacations %>%
 data_b_2_post <- left_join(data_b_1_post, vacations_Dmerge_post, by="dest_city")
 data_b_3_post <- data_b_2_post %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-11,-12))
+  dplyr::select(c(-12,-13))
 
 # then the income data
 load("data/data_income.R")
@@ -280,7 +228,7 @@ income_Dmerge_pre <- msa_income %>%
 data_c_2_pre <- left_join(data_c_1_pre, income_Dmerge_pre, by="dest_city")
 data_c_3_pre <- data_c_2_pre %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 income_Omerge_post <- msa_income %>% 
   dplyr::rename(O_income=median_income,
@@ -292,7 +240,7 @@ income_Dmerge_post <- msa_income %>%
 data_c_2_post <- left_join(data_c_1_post, income_Dmerge_post, by="dest_city")
 data_c_3_post <- data_c_2_post %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 # then the slot controlled data
 load("data/slot_controlled.R")
@@ -307,7 +255,7 @@ slot_Dmerge_pre <- slot_controlled %>%
 data_d_2_pre <- left_join(data_d_1_pre, slot_Dmerge_pre, by="dest_airport_id")
 data_d_3_pre <- data_d_2_pre %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-13,-14))
+  dplyr::select(c(-14,-15))
 
 slot_Omerge_post <- slot_controlled %>% 
   dplyr::rename(O_slot_flag=slot_controlled,
@@ -319,7 +267,7 @@ slot_Dmerge_post <- slot_controlled %>%
 data_d_2_post <- left_join(data_d_1_post, slot_Dmerge_post, by="dest_airport_id")
 data_d_3_post <- data_d_2_post %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-13,-14))
+  dplyr::select(c(-14,-15))
 
 # sort the data and add indicator for pre/post period
 airport_data_pre <- data_d_3_pre %>% 
@@ -334,74 +282,195 @@ airport_data_full <- rbind.fill(airport_data_pre,
                                 airport_data_post) %>% 
   na.omit()
 
-# OUR FINAL DATA SET FOR ANALYSIS IS airport_data_full 
 
 
-# In order to ensure that we get the same proportion of pre and post observations
-# in our train and test split, we will use the stratify method, which
-# does just that. We will stratify on the market, year, and quarter to 
-# ensure the train and test split has equal proportion of all that
-# We can then train our models on the train data.
+# take the log of prices to make the distribution more 'normal' looking
+airport_data_full <- airport_data_full %>% 
+  mutate(log_ave_price = log(ave_price)) %>% 
+  dplyr::select(-4)
 
 
-# c. Split into a test set (pre period), validation set (pre period), and a test
-# set (post period)
-# set the seed for reproduction
+
+# Now we want to split the data in to test and split sets stratified on 
+# models and years
 set.seed(11022021)
 
-# get the train data from the stratified() function in the splitstackshape
-# package. I use a 85/15 split here.
 train_data <- stratified(airport_data_full,
                          c('Market_Ind', 'YEAR'),
                          0.85)
 
-# keep just the market, year, and quarter to merge back to the full data
 train_data_merge <- train_data %>% 
   select('Market_Ind', 'YEAR', 'QUARTER')
 
-# anti join the observations from our train data to the full data in 
-# order to get the other observations as our test data.
 test_data <- anti_join(airport_data_full,
                        train_data_merge,
                        by=c('Market_Ind', 'YEAR', 'QUARTER'))
 
 
 
-#### WE CAN NOW TRAIN MODELS ####
 
-# d. Try an xgboost (or random forest) model to predict prices. Train the model on
-# the train set and test its performance on the validation set before using the
-# test data to generate our actual predictions
-
-# e. Should also try:
-# Linear Regression
-# Logistic Regression
-# Polynomial Regression
-# Stepwise Regression
-# Ridge Regression
-# Lasso Regression
-# ElasticNet Regression
-
-# f. Evaluate our best model and use it to predict prices on the test data set
-
-# g. take some time to convince the reader of why our model is strong and why
-# we made any decisions we made
+lm1 <- lm(log_ave_price ~ #YEAR +
+            QUARTER +
+            mean_income +
+            slot_controlled_flag +
+            vac_flag +
+            hub_flag +
+            ave_distance +
+            market_size +
+            period,
+          data=train_data)
+lm1_summ <- summary(lm1)
+stargazer::stargazer(lm1, type="text", header=T)
 
 
 
-##### Step 2
-# a. Now that we have our model, we can use it to predict prices a fictional merger
-# between American Airlines and United Airlines
 
-# b. To do this, we should first download the data from our 'pre merger' time, 
-# which can be two years prior to today. Then we can use our model we found in 
-# step 1 to predict the prices going out two years from today, assuming today 
-# was when our merger happened
+covars = c("mean_income",
+           "slot_controlled_flag",
+           "vac_flag",
+           "hub_flag",
+           "ave_distance",
+           "market_size",
+           "YEAR",
+           "QUARTER",
+           "period")
 
-# c. provide a discussion for our findings, present summary tables and charts
+polyvars = data.frame(poly(as.matrix(train_data[, c("mean_income",
+                                                    "slot_controlled_flag",
+                                                    "vac_flag",
+                                                    "hub_flag",
+                                                    "ave_distance",
+                                                    "market_size",
+                                                    "YEAR",
+                                                    "QUARTER",
+                                                    "period")]),
+                           degree = 2,
+                           raw = T))
+
+polyvars_test = data.frame(poly(as.matrix(test_data[, c("mean_income",
+                                                        "slot_controlled_flag",
+                                                        "vac_flag",
+                                                        "hub_flag",
+                                                        "ave_distance",
+                                                        "market_size",
+                                                        "YEAR",
+                                                        "QUARTER",
+                                                        "period")]),
+                                degree = 2,
+                                raw = T))
+
+polylm <- lm(data.frame(train_data$log_ave_price, polyvars))
+
+cvg_lasso_lambda <- cv.glmnet(as.matrix(polyvars), train_data$log_ave_price,
+                              type.measure = "mse", nfolds = 10, alpha = 1)$lambda.min
+
+cvg_lasso <- glmnet(as.matrix(polyvars), train_data$log_ave_price,
+                    alpha = 1, lambda = cvg_lasso_lambda)
+
+MSE_lm = mean((test_data$log_ave_price - predict(lm1, test_data))^2)
+MSE_poly = mean((predict(polylm, polyvars_test) - test_data$log_ave_price)^2)
+MSE_lasso<- mean((predict.glmnet(cvg_lasso, as.matrix(polyvars_test),
+                                 s = cvg_lasso_lambda, type='response') - test_data$log_ave_price)^2)
+
+mse_table <-data.frame(cbind(MSE_lm, MSE_poly, MSE_lasso))
+names(mse_table) <-c("linear probability model",
+                     "polynomial linear model",
+                     "lasso")
+knitr::kable(mse_table)
 
 
-############ Code ############
+# these are not overly accurate, being off by roughly 1.3 dollars.
+# Try something more fancy like XGBoost, random forests, and Neural Networks
 
-#hi connor + yo nick
+##### XGBoost #####
+
+train_x = data.matrix(train_data[,-15])
+train_y = data.matrix(train_data[, 15])
+
+test_x = data.matrix(test_data[,-15])
+test_y = data.matrix(test_data[, 15])
+
+
+xgb_train = xgb.DMatrix(data = train_x, label = train_y)
+xgb_test = xgb.DMatrix(data = test_x, label = test_y)
+
+xgbc = xgboost(data = xgb_train, max.depth = 8, nrounds = 400)
+print(xgbc)
+
+pred_y = predict(xgbc, xgb_test)
+mse_xgb = mean((test_y - pred_y)^2)
+
+# this puts the mse in terms of %. So on average, our xgb model is 1% off 
+# the actual price of the ticket.
+mse_xgb_ds = (10^(mse_xgb)-1)*100
+
+
+x = 1:length(test_y)
+plot(x, test_y, col = "red", type = "l")
+lines(x, pred_y, col = "blue", type = "l")
+legend(x = 1, y = 38,  legend = c("original test_y", "predicted test_y"),
+       col = c("red", "blue"), box.lty = 1, cex = 0.8, lty = c(1, 1))
+
+
+
+
+
+###### Random Forest #####
+
+rf = randomForest(log_ave_price ~ QUARTER +
+                    mean_income +
+                    slot_controlled_flag +
+                    vac_flag +
+                    hub_flag +
+                    ave_distance +
+                    market_size +
+                    period,
+                  data=train_data,
+                  ntree=2000,
+                  mtry=7,
+                  importance=TRUE)
+MSE_rf = mean((test_data$log_ave_price - predict(rf, test_data))^2)
+
+# this puts the mse in terms of %. So on average, our rf model is 0.94% off 
+# the actual price of the ticket.
+MSE_rf_ds = (10^(MSE_rf)-1)*100
+
+
+
+
+
+
+##### Neural Network #####
+# train_data_nn <- train_data %>% 
+#   na.omit()
+# 
+# maxs <- apply(train_data_nn, 2, max)
+# mins <- apply(train_data_nn, 2, min)
+# train_data_nn_s <- as.data.frame(scale(train_data_nn,
+#                               center = mins,
+#                               scale = maxs - mins))
+# 
+# nn <- neuralnet(ave_price ~ #YEAR +
+#                   QUARTER +
+#                   mean_income +
+#                   slot_controlled_flag +
+#                   vac_flag +
+#                   hub_flag +
+#                   ave_distance +
+#                   market_size +
+#                   period,
+#                 data=train_data,
+#                 hidden=c(64,32,16),
+#                 rep = 5
+# )
+# 
+# nnfit <- compute(nn, test_data) # scaled fit
+# 
+# pr_nn_1 <- nnfit_1$net.result * (max(data$y1) - min(data$y1)) +
+#   min(data$y1) # un-scale our fit
+# 
+# test_r_1 <- (data_n[-train, ]$y1) * (max(data$y1) -
+#                                        min(data$y1)) + min(data$y1)
+# 
+# MSE_nn_1 <- mean((test_r_1 - pr_nn_1)^2) # get MSE
 
