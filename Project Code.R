@@ -63,10 +63,10 @@ data_2014_q3 <- read_csv("data/2014_q3.csv") %>%
 data_2014_q4 <- read_csv("data/2014_q4.csv") %>% 
   subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
 
-data_pre <- rbind.fill(data_2013_q1,
-                       data_2013_q2,
-                       data_2013_q3,
-                       data_2013_q4,
+data_pre <- rbind.fill(data_2012_q1,
+                       data_2012_q2,
+                       data_2012_q3,
+                       data_2012_q4,
                        data_2013_q1,
                        data_2013_q2,
                        data_2013_q3,
