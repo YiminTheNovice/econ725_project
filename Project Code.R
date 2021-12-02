@@ -497,6 +497,18 @@ MSE_rf_ds = (10^(MSE_rf)-1)*100
 
 
 
+# try the xgboost model
+test_x_counter = data.matrix(airport_data_counter[,-16])
+test_y_counter = data.matrix(airport_data_counter[, 16])
+xgb_test_counter = xgb.DMatrix(data = test_x_counter, label = test_y_counter)
+pred_y_counter = predict(xgbc, xgb_test_counter)
+mse_xgb_counter = mean((test_y_counter - pred_y_counter)^2)
+mse_xgb_counter_ds = (10^(mse_xgb_counter)-1)*100
+
+
+# try the rf model
+MSE_rf_counter = mean((airport_data_counter$log_ave_price - predict(rf, airport_data_counter))^2)
+MSE_rf_counter_ds = (10^(MSE_rf_counter)-1)*100
 
 
 
@@ -508,7 +520,5 @@ MSE_rf_ds = (10^(MSE_rf)-1)*100
 ##################################################
 
 # 1. if somebody wants to take a crack at a neural network, go for it.
-# 2. Download data for the counter factual merger
-# 3. Run that through the cleaning portion of the code.
 # 4. Generate predictions with our best performing model (currently rf)
 # 5. Write everything up
