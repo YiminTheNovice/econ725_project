@@ -62,6 +62,8 @@ data_2014_q3 <- read_csv("data/2014_q3.csv") %>%
   subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
 data_2014_q4 <- read_csv("data/2014_q4.csv") %>% 
   subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="US")
+data_2019_q4 <- read_csv("data/2019_q4.csv") %>% 
+  subset(TICKET_CARRIER=="AA" | TICKET_CARRIER=="UA")
 
 data_pre <- rbind.fill(data_2012_q1,
                        data_2012_q2,
@@ -74,7 +76,8 @@ data_pre <- rbind.fill(data_2012_q1,
 data_post <- rbind.fill(data_2014_q1,
                         data_2014_q2,
                         data_2014_q3,
-                        data_2014_q4)
+                        data_2014_q4,
+                        data_2019_q4)
 
 # b. Clean this up so we get the variables we have used in our problem sets
 
@@ -160,7 +163,7 @@ lookup_and_hub_Dmerge_pre <- lookup_and_hub2 %>%
 data_a_2_pre <- left_join(data_a_1_pre, lookup_and_hub_Dmerge_pre, by="dest_airport_id")
 data_a_3_pre <- data_a_2_pre %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-10,-11,-13,-14))
+  dplyr::select(c(-11,-14))
 
 lookup_and_hub_Omerge_post <- lookup_and_hub2 %>% 
   dplyr::rename(O_hub_flag=hub_flag,
@@ -172,21 +175,23 @@ lookup_and_hub_Dmerge_post <- lookup_and_hub2 %>%
 data_a_2_post <- left_join(data_a_1_post, lookup_and_hub_Dmerge_post, by="dest_airport_id")
 data_a_3_post <- data_a_2_post %>% 
   mutate(hub_flag=pmax(D_hub_flag, O_hub_flag)) %>% 
-  dplyr::select(c(-10,-11,-13,-14))
+  dplyr::select(c(-11,-14))
 
 data_a_4_pre <- data_a_3_pre %>% 
   dplyr::rename(o_city=Description.x,
-                d_city=Description.y) 
+                d_city=Description.y)
 data_a_4_post <- data_a_3_post %>% 
   dplyr::rename(o_city=Description.x,
-                d_city=Description.y) 
+                d_city=Description.y)
 
 data_a_5_pre <- data_a_4_pre %>% 
   separate(o_city, c("origin_city",NA), sep = ":") %>% 
-  separate(d_city, c("dest_city",NA), sep=":")
+  separate(d_city, c("dest_city",NA), sep=":") %>% 
+  dplyr::select(c(-11,-13))
 data_a_5_post <- data_a_4_post %>% 
   separate(o_city, c("origin_city",NA), sep = ":") %>% 
-  separate(d_city, c("dest_city",NA), sep=":")
+  separate(d_city, c("dest_city",NA), sep=":") %>% 
+  dplyr::select(c(-11,-13))
 
 # then the vacation spot data
 load("data/vacations.R")
@@ -201,7 +206,7 @@ vacations_Dmerge_pre <- vacations %>%
 data_b_2_pre <- left_join(data_b_1_pre, vacations_Dmerge_pre, by="dest_city")
 data_b_3_pre <- data_b_2_pre %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 vacations_Omerge_post <- vacations %>%
   dplyr::rename(O_vac_flag=vacation_spot,
@@ -213,7 +218,7 @@ vacations_Dmerge_post <- vacations %>%
 data_b_2_post <- left_join(data_b_1_post, vacations_Dmerge_post, by="dest_city")
 data_b_3_post <- data_b_2_post %>% 
   mutate(vac_flag=pmax(D_vac_flag, O_vac_flag)) %>% 
-  dplyr::select(c(-12,-13))
+  dplyr::select(c(-13,-14))
 
 # then the income data
 load("data/data_income.R")
@@ -228,7 +233,7 @@ income_Dmerge_pre <- msa_income %>%
 data_c_2_pre <- left_join(data_c_1_pre, income_Dmerge_pre, by="dest_city")
 data_c_3_pre <- data_c_2_pre %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-13,-14))
+  dplyr::select(c(-14,-15))
 
 income_Omerge_post <- msa_income %>% 
   dplyr::rename(O_income=median_income,
@@ -240,7 +245,7 @@ income_Dmerge_post <- msa_income %>%
 data_c_2_post <- left_join(data_c_1_post, income_Dmerge_post, by="dest_city")
 data_c_3_post <- data_c_2_post %>% 
   mutate(mean_income=sqrt(O_income*D_income)) %>% 
-  dplyr::select(c(-13,-14))
+  dplyr::select(c(-14,-15))
 
 # then the slot controlled data
 load("data/slot_controlled.R")
@@ -255,7 +260,7 @@ slot_Dmerge_pre <- slot_controlled %>%
 data_d_2_pre <- left_join(data_d_1_pre, slot_Dmerge_pre, by="dest_airport_id")
 data_d_3_pre <- data_d_2_pre %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-14,-15))
+  dplyr::select(c(-15,-16))
 
 slot_Omerge_post <- slot_controlled %>% 
   dplyr::rename(O_slot_flag=slot_controlled,
@@ -267,7 +272,7 @@ slot_Dmerge_post <- slot_controlled %>%
 data_d_2_post <- left_join(data_d_1_post, slot_Dmerge_post, by="dest_airport_id")
 data_d_3_post <- data_d_2_post %>% 
   mutate(slot_controlled_flag=pmax(D_slot_flag, O_slot_flag)) %>% 
-  dplyr::select(c(-14,-15))
+  dplyr::select(c(-15,-16))
 
 # sort the data and add indicator for pre/post period
 airport_data_pre <- data_d_3_pre %>% 
@@ -288,6 +293,16 @@ airport_data_full <- rbind.fill(airport_data_pre,
 airport_data_full <- airport_data_full %>% 
   mutate(log_ave_price = log(ave_price)) %>% 
   dplyr::select(-4)
+
+
+
+# split out the full data and the 2019 data
+airport_data_counter <- airport_data_full %>% 
+  subset(YEAR == 2019)
+
+airport_data_full <- airport_data_full %>% 
+  subset(YEAR != 2019)
+
 
 
 
@@ -372,7 +387,12 @@ MSE_poly = mean((predict(polylm, polyvars_test) - test_data$log_ave_price)^2)
 MSE_lasso<- mean((predict.glmnet(cvg_lasso, as.matrix(polyvars_test),
                                  s = cvg_lasso_lambda, type='response') - test_data$log_ave_price)^2)
 
-mse_table <-data.frame(cbind(MSE_lm, MSE_poly, MSE_lasso))
+# descale the MSEs to get how many percent off they are from correct
+MSE_lm_ds = (10^(MSE_lm)-1)*100
+MSE_poly_ds = (10^(MSE_poly)-1)*100
+MSE_lasso_ds = (10^(MSE_lasso)-1)*100
+
+mse_table <-data.frame(cbind(MSE_lm_ds, MSE_poly_ds, MSE_lasso_ds))
 names(mse_table) <-c("linear probability model",
                      "polynomial linear model",
                      "lasso")
@@ -384,11 +404,11 @@ knitr::kable(mse_table)
 
 ##### XGBoost #####
 
-train_x = data.matrix(train_data[,-15])
-train_y = data.matrix(train_data[, 15])
+train_x = data.matrix(train_data[,-16])
+train_y = data.matrix(train_data[, 16])
 
-test_x = data.matrix(test_data[,-15])
-test_y = data.matrix(test_data[, 15])
+test_x = data.matrix(test_data[,-16])
+test_y = data.matrix(test_data[, 16])
 
 
 xgb_train = xgb.DMatrix(data = train_x, label = train_y)
@@ -400,7 +420,7 @@ print(xgbc)
 pred_y = predict(xgbc, xgb_test)
 mse_xgb = mean((test_y - pred_y)^2)
 
-# this puts the mse in terms of %. So on average, our xgb model is 1% off 
+# this puts the mse in terms of %. So on average, our xgb model is 1.1% off 
 # the actual price of the ticket.
 mse_xgb_ds = (10^(mse_xgb)-1)*100
 
@@ -431,7 +451,7 @@ rf = randomForest(log_ave_price ~ QUARTER +
                   importance=TRUE)
 MSE_rf = mean((test_data$log_ave_price - predict(rf, test_data))^2)
 
-# this puts the mse in terms of %. So on average, our rf model is 0.94% off 
+# this puts the mse in terms of %. So on average, our rf model is 1.3% off 
 # the actual price of the ticket.
 MSE_rf_ds = (10^(MSE_rf)-1)*100
 
