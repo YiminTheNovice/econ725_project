@@ -520,5 +520,4 @@ MSE_rf_counter_ds = (10^(MSE_rf_counter)-1)*100
 ##################################################
 
 # 1. if somebody wants to take a crack at a neural network, go for it.
-# 4. Generate predictions with our best performing model (currently rf)
-# 5. Write everything up
+# 2. Write everything up
