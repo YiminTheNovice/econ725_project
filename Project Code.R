@@ -26,6 +26,8 @@ suppressMessages(library(splitstackshape))
 suppressMessages(library(xgboost))
 suppressMessages(library(randomForest))
 suppressMessages(library(parsnip))
+suppressMessages(library(psych))
+suppressMessages(library(kableExtra))
 setwd("/Users/fuglc/725 Work/Project")
 
 
@@ -291,8 +293,7 @@ airport_data_full <- rbind.fill(airport_data_pre,
 
 # take the log of prices to make the distribution more 'normal' looking
 airport_data_full <- airport_data_full %>% 
-  mutate(log_ave_price = log(ave_price)) %>% 
-  dplyr::select(-4)
+  mutate(log_ave_price = log(ave_price))
 
 
 
@@ -302,6 +303,27 @@ airport_data_counter <- airport_data_full %>%
 
 airport_data_full <- airport_data_full %>% 
   subset(YEAR != 2019)
+
+
+
+
+hist(airport_data_full$ave_price,
+     main="Distribution of Average Price",
+     xlab="Average Price")
+hist(airport_data_full$log_ave_price,
+     main="Distribution of Log Average Price",
+     xlab="Log Average Price")
+descriptive_stats <- data.frame(psych::describe(airport_data_full, fast=TRUE))
+descriptive_stats <- descriptive_stats[-c(1, 7, 8, 10, 11, 16), ]
+descriptive_stats <- descriptive_stats[ ,-c(1, 7, 8)]
+output_table <- knitr::kable(descriptive_stats,
+                             "html",
+                             caption = "Summary Statistics",
+                             format.args = list(scientific = FALSE)) %>%
+  kable_styling("striped") %>%
+  save_kable("summ_stats.html")
+output_table
+save_kable(output_table, file="summ_stats.pdf")
 
 
 
@@ -392,11 +414,12 @@ MSE_lm_ds = (10^(MSE_lm)-1)*100
 MSE_poly_ds = (10^(MSE_poly)-1)*100
 MSE_lasso_ds = (10^(MSE_lasso)-1)*100
 
-mse_table <-data.frame(cbind(MSE_lm_ds, MSE_poly_ds, MSE_lasso_ds))
-names(mse_table) <-c("linear probability model",
-                     "polynomial linear model",
-                     "lasso")
-knitr::kable(mse_table)
+# mse_table <-data.frame(cbind(MSE_lm_ds, MSE_poly_ds, MSE_lasso_ds))
+# names(mse_table) <-c("linear probability model",
+#                      "polynomial linear model",
+#                      "lasso")
+# knitr::kable(mse_table,
+#              "simple")
 
 
 # these are not overly accurate, being off by roughly 1.3 dollars.
@@ -404,11 +427,14 @@ knitr::kable(mse_table)
 
 ##### XGBoost #####
 
-train_x = data.matrix(train_data[,-16])
-train_y = data.matrix(train_data[, 16])
+# train_data_xgb <- train_data[,-c(10,11)]
+# test_data_xgb <- test_data[,-c(10,11)]
 
-test_x = data.matrix(test_data[,-16])
-test_y = data.matrix(test_data[, 16])
+train_x = data.matrix(train_data[,-17])
+train_y = data.matrix(train_data[, 17])
+
+test_x = data.matrix(test_data[,-17])
+test_y = data.matrix(test_data[, 17])
 
 
 xgb_train = xgb.DMatrix(data = train_x, label = train_y)
@@ -426,8 +452,8 @@ mse_xgb_ds = (10^(mse_xgb)-1)*100
 
 
 x = 1:length(test_y)
-plot(x, test_y, col = "red", type = "l")
-lines(x, pred_y, col = "blue", type = "l")
+plot(x, test_y, col = rgb(red = 1, green = 0, blue = 0, alpha = 0.9), type = "l")
+lines(x, pred_y, col = rgb(red = 0, green = 0, blue = 1, alpha = 0.9), type = "l")
 legend(x = 1, y = 38,  legend = c("original test_y", "predicted test_y"),
        col = c("red", "blue"), box.lty = 1, cex = 0.8, lty = c(1, 1))
 
@@ -458,48 +484,28 @@ MSE_rf_ds = (10^(MSE_rf)-1)*100
 
 
 
-
-
-##### Neural Network #####
-# train_data_nn <- train_data %>% 
-#   na.omit()
-# 
-# maxs <- apply(train_data_nn, 2, max)
-# mins <- apply(train_data_nn, 2, min)
-# train_data_nn_s <- as.data.frame(scale(train_data_nn,
-#                               center = mins,
-#                               scale = maxs - mins))
-# 
-# nn <- neuralnet(ave_price ~ #YEAR +
-#                   QUARTER +
-#                   mean_income +
-#                   slot_controlled_flag +
-#                   vac_flag +
-#                   hub_flag +
-#                   ave_distance +
-#                   market_size +
-#                   period,
-#                 data=train_data,
-#                 hidden=c(64,32,16),
-#                 rep = 5
-# )
-# 
-# nnfit <- compute(nn, test_data) # scaled fit
-# 
-# pr_nn_1 <- nnfit_1$net.result * (max(data$y1) - min(data$y1)) +
-#   min(data$y1) # un-scale our fit
-# 
-# test_r_1 <- (data_n[-train, ]$y1) * (max(data$y1) -
-#                                        min(data$y1)) + min(data$y1)
-# 
-# MSE_nn_1 <- mean((test_r_1 - pr_nn_1)^2) # get MSE
+mse_table <-data.frame(cbind(MSE_lm_ds, MSE_poly_ds, MSE_lasso_ds, mse_xgb_ds, MSE_rf_ds))
+names(mse_table) <-c("linear probability model",
+                     "polynomial linear model",
+                     "lasso",
+                     "XGBoost",
+                     "Random Forest")
+knitr::kable(mse_table,
+             "html",
+             caption="Mean Squared Error of Different Models") %>% 
+  kable_styling("striped",
+                full_width = F) %>% 
+  save_kable("MSE_table.html")
 
 
 
+##### Counter Factual Merger AA and United #####
+# 1. Read in and clean the Q4 2019 data to use as the test data from our
+#    model from above. We will use the Random Forest and xgboost models.
 
 # try the xgboost model
-test_x_counter = data.matrix(airport_data_counter[,-16])
-test_y_counter = data.matrix(airport_data_counter[, 16])
+test_x_counter = data.matrix(airport_data_counter[,-17])
+test_y_counter = data.matrix(airport_data_counter[, 17])
 xgb_test_counter = xgb.DMatrix(data = test_x_counter, label = test_y_counter)
 pred_y_counter = predict(xgbc, xgb_test_counter)
 mse_xgb_counter = mean((test_y_counter - pred_y_counter)^2)
@@ -509,15 +515,3 @@ mse_xgb_counter_ds = (10^(mse_xgb_counter)-1)*100
 # try the rf model
 MSE_rf_counter = mean((airport_data_counter$log_ave_price - predict(rf, airport_data_counter))^2)
 MSE_rf_counter_ds = (10^(MSE_rf_counter)-1)*100
-
-
-
-
-
-
-##################################################
-########### NEXT STEPS ###########################
-##################################################
-
-# 1. if somebody wants to take a crack at a neural network, go for it.
-# 2. Write everything up
