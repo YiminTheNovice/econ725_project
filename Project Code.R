@@ -430,10 +430,10 @@ MSE_lasso_ds = (10^(MSE_lasso)-1)*100
 # train_data_xgb <- train_data[,-c(10,11)]
 # test_data_xgb <- test_data[,-c(10,11)]
 
-train_x = data.matrix(train_data[,-17])
+train_x = data.matrix(train_data[,-c(17, 4)])
 train_y = data.matrix(train_data[, 17])
 
-test_x = data.matrix(test_data[,-17])
+test_x = data.matrix(test_data[,-c(17, 4)])
 test_y = data.matrix(test_data[, 17])
 
 
